@@ -3,25 +3,17 @@ import type { VehicleFormData, ApiResponse, VehicleListResponse } from '../types
 /**
  * Base API URL used by all vehicle service functions.
  *
- * - In local development we usually set `VITE_API_BASE_URL` to the backend host,
- *   for example: `http://51.20.95.77:8080`. In that case we append the common
- *   `/api/v1/bajaj` prefix once so every call hits the correct backend route.
- * - In production on Vercel we typically do not set `VITE_API_BASE_URL` and
- *   instead rely on the relative path `/api/v1/bajaj`, which is then proxied
- *   to the backend by the Vercel configuration (`vercel.json` rewrites).
+ * We always use a relative base path `/api/v1/bajaj`:
+ * - In local development, Vite is configured (in `vite.config.ts`) to proxy
+ *   `/api` requests to the backend at `http://51.20.95.77:8080`, so a browser
+ *   call to `http://localhost:3000/api/v1/bajaj/...` is transparently forwarded
+ *   to `http://51.20.95.77:8080/api/v1/bajaj/...`.
+ * - In production on Vercel, `vercel.json` defines a rewrite from
+ *   `/api/v1/bajaj/...` to `http://51.20.95.77:8080/api/v1/bajaj/...`, so the
+ *   browser always talks to the HTTPS frontend origin and Vercel does the HTTP
+ *   call to the backend, avoiding mixed‑content errors.
  */
-const envApiBaseUrl: string | undefined = import.meta.env
-  .VITE_API_BASE_URL as string | undefined;
-
-/**
- * When an explicit base URL is provided, treat it as the host and append the
- * common `/api/v1/bajaj` prefix exactly once.
- * When no base URL is provided, fall back to the relative prefix that works
- * both with the Vite dev proxy and with Vercel rewrites.
- */
-const API_BASE_URL: string = envApiBaseUrl
-  ? `${envApiBaseUrl}/api/v1/bajaj`
-  : '/api/v1/bajaj';
+const API_BASE_URL: string = '/api/v1/bajaj';
 /**
  * Helper function to log API calls for debugging
  */
