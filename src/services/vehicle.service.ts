@@ -5,9 +5,10 @@ import type { VehicleFormData, ApiResponse, VehicleListResponse } from '../types
  * Prefer value from Vite environment (VITE_API_BASE_URL) and fall back
  * to the previous hardcoded relative path to avoid breaking existing behavior.
  */
-const API_BASE_URL: string =
+let API_BASE_URL: string =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1/bajaj';
 
+API_BASE_URL = `${API_BASE_URL}/api/v1/bajaj`;
 /**
  * Helper function to log API calls for debugging
  */
