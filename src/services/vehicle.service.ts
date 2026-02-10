@@ -1,14 +1,27 @@
 import type { VehicleFormData, ApiResponse, VehicleListResponse } from '../types/vehicle.types';
 
 /**
- * Base API URL
- * Prefer value from Vite environment (VITE_API_BASE_URL) and fall back
- * to the previous hardcoded relative path to avoid breaking existing behavior.
+ * Base API URL used by all vehicle service functions.
+ *
+ * - In local development we usually set `VITE_API_BASE_URL` to the backend host,
+ *   for example: `http://51.20.95.77:8080`. In that case we append the common
+ *   `/api/v1/bajaj` prefix once so every call hits the correct backend route.
+ * - In production on Vercel we typically do not set `VITE_API_BASE_URL` and
+ *   instead rely on the relative path `/api/v1/bajaj`, which is then proxied
+ *   to the backend by the Vercel configuration (`vercel.json` rewrites).
  */
-let API_BASE_URL: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1/bajaj';
+const envApiBaseUrl: string | undefined = import.meta.env
+  .VITE_API_BASE_URL as string | undefined;
 
-API_BASE_URL = `${API_BASE_URL}/api/v1/bajaj`;
+/**
+ * When an explicit base URL is provided, treat it as the host and append the
+ * common `/api/v1/bajaj` prefix exactly once.
+ * When no base URL is provided, fall back to the relative prefix that works
+ * both with the Vite dev proxy and with Vercel rewrites.
+ */
+const API_BASE_URL: string = envApiBaseUrl
+  ? `${envApiBaseUrl}/api/v1/bajaj`
+  : '/api/v1/bajaj';
 /**
  * Helper function to log API calls for debugging
  */
