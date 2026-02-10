@@ -21,8 +21,8 @@ export const DeleteConfirmationModal = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6">
         <h3 className="text-xl font-bold text-gray-800 mb-4">Confirm Deletion</h3>
         <p className="text-gray-600 mb-6">
           Are you sure you want to delete the vehicle with serial number{' '}

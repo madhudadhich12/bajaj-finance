@@ -1,20 +1,53 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { VehicleDashboard } from './components/vehicle-dashboard';
 import { AddVehicleForm } from './components/add-vehicle-form';
 import { LoginForm } from './components/login-form';
+
+const STORAGE_KEY_IS_AUTHENTICATED = 'bajajFinance.isAuthenticated';
+const STORAGE_KEY_CURRENT_VIEW = 'bajajFinance.currentView';
 
 /**
  * Page views for navigation
  */
 type PageView = 'dashboard' | 'add';
 
+const getInitialAuthState = (): { isAuthenticated: boolean; currentView: PageView } => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return { isAuthenticated: false, currentView: 'dashboard' };
+  }
+  const storedIsAuthenticated = window.localStorage.getItem(STORAGE_KEY_IS_AUTHENTICATED);
+  const storedView = window.localStorage.getItem(STORAGE_KEY_CURRENT_VIEW) as PageView | null;
+  const isAuthenticated = storedIsAuthenticated === 'true';
+  const currentView: PageView = storedView === 'add' ? 'add' : 'dashboard';
+  return { isAuthenticated, currentView };
+};
+
+const saveAuthState = (params: { isAuthenticated: boolean; currentView: PageView }): void => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return;
+  }
+  const { isAuthenticated, currentView } = params;
+  if (!isAuthenticated) {
+    window.localStorage.removeItem(STORAGE_KEY_IS_AUTHENTICATED);
+    window.localStorage.removeItem(STORAGE_KEY_CURRENT_VIEW);
+    return;
+  }
+  window.localStorage.setItem(STORAGE_KEY_IS_AUTHENTICATED, 'true');
+  window.localStorage.setItem(STORAGE_KEY_CURRENT_VIEW, currentView);
+};
+
 /**
  * Main App component
  * Handles user authentication and renders the appropriate view.
  */
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentView, setCurrentView] = useState<PageView>('dashboard');
+  const initialAuthState = getInitialAuthState();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initialAuthState.isAuthenticated);
+  const [currentView, setCurrentView] = useState<PageView>(initialAuthState.currentView);
+
+  useEffect(() => {
+    saveAuthState({ isAuthenticated, currentView });
+  }, [isAuthenticated, currentView]);
 
   const handleLoginSuccess = (): void => {
     setIsAuthenticated(true);

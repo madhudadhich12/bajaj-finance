@@ -2,7 +2,7 @@ import { JSX, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { getVehicles, deleteVehicle, markAsSold } from '../services/vehicle.service';
 import type { Vehicle } from '../types/vehicle.types';
-import { useDebounce } from '../hooks/use-debounce';
+// import { useDebounce } from '../hooks/use-debounce';
 import { DeleteConfirmationModal } from './delete-confirmation-modal';
 import { EditVehicleForm } from './edit-vehicle-form';
 import { ActionMenu } from './action-menu';
@@ -15,14 +15,14 @@ const ITEMS_PER_PAGE = 5;
 /**
  * Debounce delay for search inputs (in milliseconds)
  */
-const DEBOUNCE_DELAY_MS = 500;
+// const DEBOUNCE_DELAY_MS = 500;
 
 /**
- * Search mode for vehicle dashboard
- * - serial_number: search only by serial number
- * - dealer_code: search only by dealer code
+ * Dashboard search supports filtering by:
+ * - serial_number
+ * - dealer_code
+ * Either field can be used alone, or both together.
  */
-type VehicleSearchMode = 'serial_number' | 'dealer_code';
 
 /**
  * Dashboard component displaying vehicles in a table with pagination, search, and actions
@@ -33,9 +33,8 @@ export const VehicleDashboard = (): JSX.Element => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchSerialNumber, setSearchSerialNumber] = useState<string>('');
   const [searchDealerCode, setSearchDealerCode] = useState<string>('');
-  const [searchMode, setSearchMode] = useState<VehicleSearchMode>('serial_number');
-  const debouncedSerialNumber = useDebounce(searchSerialNumber, DEBOUNCE_DELAY_MS);
-  const debouncedDealerCode = useDebounce(searchDealerCode, DEBOUNCE_DELAY_MS);
+  // const debouncedSerialNumber = useDebounce(searchSerialNumber, DEBOUNCE_DELAY_MS);
+  // const debouncedDealerCode = useDebounce(searchDealerCode, DEBOUNCE_DELAY_MS);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [deletingVehicle, setDeletingVehicle] = useState<{ id: number; serialNumber: string } | null>(
     null,
@@ -54,14 +53,23 @@ export const VehicleDashboard = (): JSX.Element => {
     try {
       const serialNum = serialNumber?.trim() || undefined;
       const dealer = dealerCode?.trim() || undefined;
-
       const response = await getVehicles(serialNum, dealer);
-
       if (response.error) {
         toast.error(response.error);
         setVehicles([]);
       } else {
-        setVehicles(response.vehicles || []);
+        const apiVehicles = response.vehicles || [];
+        const hasSerialFilter = typeof serialNum === 'string' && serialNum.length > 0;
+        const hasDealerFilter = typeof dealer === 'string' && dealer.length > 0;
+        let filteredVehicles: Vehicle[] = apiVehicles;
+        if (hasSerialFilter && hasDealerFilter) {
+          filteredVehicles = apiVehicles.filter((vehicle) => {
+            const matchesSerial = vehicle.serial_number === serialNum;
+            const matchesDealer = vehicle.dealer_code === dealer;
+            return matchesSerial && matchesDealer;
+          });
+        }
+        setVehicles(filteredVehicles);
         // Reset to first page when search changes
         setCurrentPage(1);
       }
@@ -76,31 +84,27 @@ export const VehicleDashboard = (): JSX.Element => {
   }, []);
 
   /**
-   * Auto-search when debounced search values change.
-   * Fires on mount (both values are '') and 500ms after
-   * the user stops typing in either search field.
-   * The active searchMode determines which single filter is applied.
+   * Initial load of vehicles without debouncing.
    */
   useEffect(() => {
-    let serialFilter: string | undefined;
-    let dealerFilter: string | undefined;
-    if (searchMode === 'serial_number') {
-      serialFilter = debouncedSerialNumber;
-      dealerFilter = undefined;
-    } else {
-      serialFilter = undefined;
-      dealerFilter = debouncedDealerCode;
-    }
-    fetchVehicles(serialFilter, dealerFilter);
-  }, [debouncedSerialNumber, debouncedDealerCode, searchMode, fetchVehicles]);
+    fetchVehicles();
+  }, [fetchVehicles]);
+
+  /**
+   * Handle search triggered by button click.
+   */
+  const handleSearch = (): void => {
+    void fetchVehicles(searchSerialNumber, searchDealerCode);
+  };
 
   /**
    * Handle clear search filters.
-   * Resetting the state triggers the debounced auto-search effect.
+   * Also refreshes the list with no filters.
    */
   const handleClearSearch = (): void => {
     setSearchSerialNumber('');
     setSearchDealerCode('');
+    void fetchVehicles();
   };
 
   /**
@@ -178,9 +182,6 @@ export const VehicleDashboard = (): JSX.Element => {
   const currentVehicles = vehicles.slice(startIndex, endIndex);
   const hasSearchFilters =
     searchSerialNumber.trim().length > 0 || searchDealerCode.trim().length > 0;
-  const isSearchPending =
-    searchSerialNumber !== debouncedSerialNumber ||
-    searchDealerCode !== debouncedDealerCode;
 
   /**
    * Handle edit save - refresh list and close edit form
@@ -232,77 +233,45 @@ export const VehicleDashboard = (): JSX.Element => {
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Search Vehicles</h3>
             <p className="mt-1 text-xs sm:text-sm text-slate-500">
-              Search either by serial number or by dealer code.
+              Search by serial number, dealer code, or both together.
             </p>
           </div>
-          <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-              <button
-                type="button"
-                onClick={(): void => {
-                  setSearchMode('serial_number');
-                  setSearchDealerCode('');
-                }}
-                className={`px-3 py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors ${
-                  searchMode === 'serial_number'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Serial Number
-              </button>
-              <button
-                type="button"
-                onClick={(): void => {
-                  setSearchMode('dealer_code');
-                  setSearchSerialNumber('');
-                }}
-                className={`px-3 py-1.5 text-xs sm:text-sm rounded-md font-medium transition-colors ${
-                  searchMode === 'dealer_code'
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Dealer Code
-              </button>
-            </div>
-            {isSearchPending && (
-              <span className="text-xs sm:text-sm text-blue-600 animate-pulse">Searching...</span>
-            )}
-          </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {searchMode === 'serial_number' && (
-            <div>
-              <label htmlFor="search_serial" className="block text-sm font-medium text-slate-700 mb-1">
-                Serial Number
-              </label>
-              <input
-                id="search_serial"
-                type="text"
-                value={searchSerialNumber}
-                onChange={(event) => setSearchSerialNumber(event.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                placeholder="Search by serial number"
-              />
-            </div>
-          )}
-          {searchMode === 'dealer_code' && (
-            <div>
-              <label htmlFor="search_dealer" className="block text-sm font-medium text-slate-700 mb-1">
-                Dealer Code
-              </label>
-              <input
-                id="search_dealer"
-                type="text"
-                value={searchDealerCode}
-                onChange={(event) => setSearchDealerCode(event.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                placeholder="Search by dealer code"
-              />
-            </div>
-          )}
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="search_serial" className="block text-sm font-medium text-slate-700 mb-1">
+              Serial Number
+            </label>
+            <input
+              id="search_serial"
+              type="text"
+              value={searchSerialNumber}
+              onChange={(event) => setSearchSerialNumber(event.target.value)}
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              placeholder="Search by serial number"
+            />
+          </div>
+          <div>
+            <label htmlFor="search_dealer" className="block text-sm font-medium text-slate-700 mb-1">
+              Dealer Code
+            </label>
+            <input
+              id="search_dealer"
+              type="text"
+              value={searchDealerCode}
+              onChange={(event) => setSearchDealerCode(event.target.value)}
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              placeholder="Search by dealer code"
+            />
+          </div>
           <div className="flex items-end gap-2">
+            <button
+              type="button"
+              onClick={handleSearch}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-md font-semibold transition-colors bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-600"
+            >
+              Search
+            </button>
             <button
               type="button"
               onClick={handleClearSearch}

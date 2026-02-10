@@ -6,7 +6,7 @@ import type { VehicleFormData, ApiResponse, VehicleListResponse } from '../types
  * to the previous hardcoded relative path to avoid breaking existing behavior.
  */
 const API_BASE_URL: string =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1/bajaj';
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1/bajaj';
 
 /**
  * Helper function to log API calls for debugging
