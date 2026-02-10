@@ -11,7 +11,7 @@ interface DeleteConfirmationModalProps {
 
 export const DeleteConfirmationModal = ({
   isOpen,
-  vehicleId,
+ // vehicleId,
   serialNumber,
   onConfirm,
   onCancel,
